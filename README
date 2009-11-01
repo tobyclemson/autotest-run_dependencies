@@ -1,0 +1,2 @@
+Adds a compile stage to autotest execution so that Test::Unit, rSpec and 
+Cucumber can be used to test Java classes through JRuby.
