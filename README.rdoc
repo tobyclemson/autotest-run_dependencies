@@ -1,0 +1,130 @@
+= Autotest::RunDependencies
+
+* Author: Toby Clemson (tobyclemson@gmail.com)
+
+== DESCRIPTION:
+
+This gem provides a mechanism through which it is possible to specify that an
+arbitrary number of external dependencies are satisfied before a test run can
+be executed.
+
+Dependencies are added by specifying a name, command, satisfied_regexp and 
+errors_regexp parameter for each. The command refers to a script that is run 
+to satisfy or test the dependency. If the output of the command (either 
+to standard output or standard error) matches the satisfied_regexp then the 
+dependency is considered met otherwise any lines in the output matching 
+errors_regexp are output and the dependency test waits for changes to the 
+codebase before trying to satisfy the dependency again.
+
+By default, the output is colourised in green if a dependency is satisfied 
+and red if a dependency is not satisfied. This colourisation can be turned 
+off if required.
+
+== REQUIREMENTS:
+
+* ZenTest >= 3.9.0
+
+== INSTALL:
+
+The gem can be installed using the following command:
+
+  sudo gem install autotest-run_dependencies
+
+== SETUP & CONFIGURATION:
+
+To add a dependency to the autotest test runs for a particular project, add
+the following to a .autotest file in the root of your project:
+  
+  require "autotest/run_requirements"
+
+  Autotest::RunDependencies.add do |dependency|
+    dependency.name =             "dependency name"   # used to identify the dependency
+    dependency.command =          "command_or_script" # the command to run
+    dependency.satisfied_regexp = /success/           # a regexp matching the output if successful
+    dependency.errors_regexp =    /error: (.*)/       # a regexp matching errors in the command output
+  end
+  
+The only required parameters are command and satisfied_regexp. This call
+automatically registers your dependency with autotest so that it will run 
+before every test autotest test run.
+
+By default the status messages are coloured green for success, red for 
+failure. This can be turned off by setting colourised_output to false:
+
+  Autotest::RunDependencies.colourised_output = false
+
+== EXAMPLE
+
+Using JRuby it is possible to use RSpec to specify Java code. In such an 
+instance it is required that the codebase compiles successfully before the
+specs are run against it. Many Java developers use the popular 'ant' tool to 
+compile their code and so here we will assume the codebase is compiled using
+the command 'ant clean jar'. This dependency can be accomplished using 
+Autotest::RunDependencies by creating a .autotest file in your project root 
+containing the following:
+
+  require "autotest/run_requirements"
+  
+  Autotest::RunDependencies.add do |dependency|
+    dependency.name =             "codebase compiles successfully"
+    dependency.command =          "ant clean jar"
+    dependency.satisfied_regexp = /^BUILD SUCCESSFUL$/
+    dependency.errors_regexp =    /^\s*\[javac\]\s(.*)$/
+  end
+  
+This ensures that the command "ant clean jar" is called and outputs 
+'BUILD SUCCESSFUL' before the test suite is run. If the build fails,
+each line beginning with '[javac]' is output and the dependency test waits 
+for the compile errors to be fixed before rerunning the build.
+
+You may also need to set up a mapping from the Java source files to spec 
+files. Assuming the source files are in a directory 'src/' and that Java
+classes use camel case (SomeClass.java) whilst specification files use
+underscore separated lowercase (some_class_spec.rb) this can be accomplished 
+using: (conversion code taken from ActiveSupport)
+
+  Autotest.add_hook :initialize do |autotest|
+    autotest.add_mapping(%r%^src/(.*)\.java$%) { |_, m|
+      ruby_style_name = m[1].gsub(
+        /([A-Z]+)([A-Z][a-z])/,'\1_\2'
+      ).gsub(
+        /([a-z\d])([A-Z])/,'\1_\2'
+      ).tr("-", "_").downcase
+      ["spec/#{ruby_style_name}_spec.rb"]
+    }
+    false # important: allows other hooks to be called
+  end
+
+== DEVELOPMENT:
+
+The code is hosted on github at 
+http://www.github.com/tobyclemson/autotest-run_requirements and so forking is
+encouraged.
+
+Alternatively, suggestions for improvements are welcome at my email address
+tobyclemson@gmail.com
+
+== LICENSE:
+
+(The MIT License)
+
+Copyright (c) 2009 Sven Schwyn
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
