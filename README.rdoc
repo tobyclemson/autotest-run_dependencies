@@ -98,7 +98,7 @@ using: (conversion code taken from ActiveSupport)
 == DEVELOPMENT:
 
 The code is hosted on github at 
-http://www.github.com/tobyclemson/autotest-run_requirements and so forking is
+http://www.github.com/tobyclemson/autotest-run_dependencies and so forking is
 encouraged.
 
 Alternatively, suggestions for improvements are welcome at my email address
